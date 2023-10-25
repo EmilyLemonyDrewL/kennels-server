@@ -4,6 +4,8 @@ from .animal_requests import (
   create_animal,
   delete_animal,
   update_animal,
+  get_animals_by_location,
+  get_animals_by_status
 )
 from .locations_requests import (
   get_all_locations,
@@ -18,6 +20,7 @@ from .employee_requests import (
   create_employee,
   delete_employee,
   update_employee,
+  get_employee_by_location
 )
 from .customer_requests import (
   get_all_customers,
@@ -25,4 +28,5 @@ from .customer_requests import (
   create_customer,
   delete_customer,
   update_customer,
+  get_customer_by_email,
 )

@@ -1,4 +1,6 @@
 import json
+# add this import to the top of the file
+from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from views import (
     get_all_animals,
@@ -20,7 +22,11 @@ from views import (
     delete_customer,
     update_location,
     update_employee,
-    update_customer
+    update_customer,
+    get_customer_by_email,
+    get_animals_by_status,
+    get_animals_by_location,
+    get_employee_by_location
 )
 
 
@@ -29,21 +35,23 @@ from views import (
 # work together for a common purpose. In this case, that
 # common purpose is to respond to HTTP requests from a client.
 class HandleRequests(BaseHTTPRequestHandler):
+    # replace the parse_url function in the class
     def parse_url(self, path):
-        path_params = path.split("/")
+        """Parse the url into the resource and id"""
+        parsed_url = urlparse(path)
+        path_params = parsed_url.path.split('/')  # ['', 'animals', 1]
         resource = path_params[1]
-        id = None
+
+        if parsed_url.query:
+            query = parse_qs(parsed_url.query)
+            return (resource, query)
+
+        pk = None
         try:
-            id = int(path_params[2])
-        except IndexError:
+            pk = int(path_params[2])
+        except (IndexError, ValueError):
             pass
-        except ValueError:
-            pass
-        return (resource, id)
-    # This is a Docstring it should be at the beginning of all classes and functions
-    # It gives a description of the class or function
-    """Controls the functionality of any GET, PUT, POST, DELETE requests to the server
-    """
+        return (resource, pk)
 
     # Here's a class function
     def _set_headers(self, status):
@@ -72,39 +80,59 @@ class HandleRequests(BaseHTTPRequestHandler):
     # Here's a method on the class that overrides the parent's method.
     # It handles any GET request.
     def do_GET(self):
-        """Handles GET requests to the server
-        """
-        # Set the response code to 'Ok'
         self._set_headers(200)
+
         response = {}
-        (resource, id) = self.parse_url(self.path)
 
-        if resource == "animals":
-            if id is not None:
-                response = get_single_animal(id)
-            else:
-                response = get_all_animals()
+        # Parse URL and store entire tuple in a variable
+        parsed = self.parse_url(self.path)
 
-        # GET LOCATIONS
-        if resource == "locations":
-            if id is not None:
-                response = get_single_location(id)
-            else:
-                response = get_all_locations()
+        # If the path does not include a query parameter, continue with the original if block
+        if '?' not in self.path:
+            ( resource, id ) = parsed
 
-        # GET EMPLOYEES
-        if resource == "employees":
-            if id is not None:
-                response = get_single_employee(id)
-            else:
-                response = get_all_employees()
+            # It's an if..else statement
+            if resource == "animals":
+                if id is not None:
+                    response = get_single_animal(id)
 
-        # GET CUSTOMERS
-        if resource == "customers":
-            if id is not None:
-                response = get_single_customer(id)
-            else:
-                response = get_all_customers()
+                else:
+                    response = get_all_animals()
+
+            if resource == "locations":
+                if id is not None:
+                    response = get_single_location(id)
+
+                else:
+                    response = get_all_locations()
+            if resource == "employees":
+                if id is not None:
+                    response = get_single_employee(id)
+
+                else:
+                    response = get_all_employees()
+            if resource == "customers":
+                if id is not None:
+                    response = get_single_customer(id)
+
+                else:
+                    response = get_all_customers()
+
+        else: # There is a ? in the path, run the query param functions
+            (resource, query) = parsed
+
+            # see if the query dictionary has an email key
+            if query.get('email') and resource == 'customers':
+                response = get_customer_by_email(query['email'][0])
+
+            if query.get('location_id') and resource == 'animals':
+                response = get_animals_by_location(query['location_id'][0])
+
+            if query.get('status') and resource == 'animals':
+                response = get_animals_by_status(query['status'][0])
+
+            if query.get('location_id') and resource == 'employees':
+                response = get_employee_by_location(query['location_id'][0])
 
         self.wfile.write(json.dumps(response).encode())
 
