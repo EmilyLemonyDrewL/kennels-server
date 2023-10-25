@@ -74,7 +74,7 @@ def get_single_location(id):
         data = db_cursor.fetchone()
 
         # Create an animal instance from the current row
-        location = Location(data['id'], data['name'], data['location'])
+        location = Location(data['id'], data['name'], data['address'])
 
         return location.__dict__
 
